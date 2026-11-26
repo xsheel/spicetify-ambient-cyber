@@ -2,6 +2,8 @@
 
 A [Spicetify](https://spicetify.app) theme and extension that turns the Spotify desktop app into a clean, neon, cyberpunk-styled player **whose lights move with the music**. On macOS, an optional companion app lets the glow spill out of the window onto your desktop.
 
+![Ambient Cyber in action: Spotify as a window on the desktop with neon edge lights and the glow spilling onto the wallpaper](docs/screenshots/demo.gif)
+
 ![Ambient Cyber theme on an album page: neon accents taken from the album art, glowing covers and a lit window edge](docs/screenshots/main.png)
 
 *The edge lights, bars and glows animate with the music. This still was taken with playback paused, so they're at their calmest.*
