@@ -1,0 +1,191 @@
+/* ===== Ambient // CYBER — cyberpunk theme for Spotify (Spicetify) ===== */
+@font-face { font-family: "Orbitron"; font-weight: 700; font-display: swap; src: url(data:font/woff2;base64,{{orbitron-700}}) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(data:font/woff2;base64,{{rajdhani-500}}) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(data:font/woff2;base64,{{rajdhani-600}}) format("woff2"); }
+@font-face { font-family: "Rajdhani"; font-weight: 700; font-display: swap; src: url(data:font/woff2;base64,{{rajdhani-700}}) format("woff2"); }
+
+:root {
+  --ambient-color: 0, 240, 255;            /* album accent, set live by ambient-edge.js */
+  --neon-cyan: 0, 240, 255;
+  --neon-pink: 255, 42, 109;
+  --neon-yellow: 249, 240, 2;
+  --cut: 12px;
+  --gap: 6px;
+  --font-ui: "Rajdhani", "SF Pro Display", system-ui, sans-serif;
+  --font-display: "Orbitron", "Rajdhani", system-ui, sans-serif;
+}
+:root, .encore-dark-theme, .encore-base-set {
+  --encore-body-font-stack: var(--font-ui) !important;
+  --encore-title-font-stack: var(--font-ui) !important;
+  --encore-variable-font-stack: var(--font-ui) !important;
+}
+body, button, input { font-family: var(--font-ui) !important; letter-spacing: 0.02em; }
+body { background: rgb(2, 2, 5) !important; -webkit-font-smoothing: antialiased; }
+::selection { background: rgba(var(--neon-pink), .45); color: #fff; }
+
+/* ---- big titles: Orbitron, uppercase, neon ---- */
+h1, .main-entityHeader-title, [data-testid="entityTitle"] h1, .encore-text-headline-large, .encore-text-headline-medium {
+  font-family: var(--font-display) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em !important;
+  text-shadow: 0 0 22px rgba(var(--ambient-color), .35);
+}
+h2, .encore-text-title-medium, .encore-text-title-small, .main-shelf-title {
+  font-family: var(--font-ui) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.12em !important;
+}
+
+/* ---- layout: soft rounded panels, no hard outlines ---- */
+.Root__top-container { gap: var(--gap) !important; padding: var(--gap) !important; background: transparent !important; }
+.Root__nav-bar > *, .Root__main-view, .Root__right-sidebar > *,
+[data-testid="left-sidebar"] > *, [data-testid="right-sidebar"] > *, .main-view-container {
+  background-color: var(--spice-main) !important;   /* = the colour Spotify's header gradients fade into → no hard edge */
+  border: none !important;
+  border-radius: 14px !important;
+  clip-path: none !important;
+}
+.Root__nav-bar, .Root__right-sidebar { border-radius: 14px !important; }
+
+/* player bar: glass + neon top line */
+.Root__now-playing-bar {
+  background: rgba(8, 6, 16, .82) !important;
+  backdrop-filter: blur(18px) saturate(150%);
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 0 -1px 0 0 rgba(var(--ambient-color), .35), 0 -10px 30px -18px rgba(var(--ambient-color), .5);
+}
+.Root__now-playing-bar footer, .Root__now-playing-bar > div { background: transparent !important; }
+
+/* ---- cards ---- */
+.main-card-card {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 12px !important;
+  clip-path: none !important;
+  transition: background .25s ease, transform .25s ease !important;
+}
+.main-card-card:hover { background: rgba(255,255,255,.05) !important; transform: translateY(-2px); }
+.main-card-imageContainer img, .main-image-image, .main-cardImage-image { border-radius: 10px !important; }
+.main-cardImage-circular img, .main-cardImage-circular .main-cardImage-image { border-radius: 50% !important; }
+.main-entityHeader-image { border-radius: 12px !important; box-shadow: 0 12px 40px rgba(0,0,0,.45) !important; }
+
+/* ---- track rows ---- */
+.main-trackList-trackListRow { border-radius: 10px !important; transition: background .15s ease !important; }
+.main-trackList-trackListRow:hover { background: rgba(255,255,255,.06) !important; box-shadow: none !important; }
+.main-trackList-trackListRow[aria-selected="true"] { background: rgba(var(--ambient-color), .14) !important; box-shadow: none !important; }
+.main-trackList-trackListHeaderRow { text-transform: uppercase; letter-spacing: .14em; border-bottom-color: rgba(255,255,255,.06) !important; }
+.main-trackList-rowImage { border-radius: 6px !important; }
+
+/* ---- buttons & accents follow the (neon) album colour ---- */
+:root, .encore-dark-theme, .encore-base-set {
+  --spice-button: rgb(var(--ambient-color)) !important;
+  --spice-button-active: rgb(var(--ambient-color)) !important;
+  --spice-rgb-button: var(--ambient-color) !important;
+  --text-bright-accent: rgb(var(--ambient-color)) !important;
+  --essential-bright-accent: rgb(var(--ambient-color)) !important;
+}
+.main-playButton-PlayButton > button > span, .main-playButton-button,
+button[data-testid="play-button"] > span, .encore-bright-accent-set {
+  background-color: rgb(var(--ambient-color)) !important;
+  --background-base: rgb(var(--ambient-color)) !important;
+  --background-highlight: rgb(var(--ambient-color)) !important;
+  --background-press: rgb(var(--ambient-color)) !important;
+  box-shadow: 0 0 16px rgba(var(--ambient-color), .55);
+  transition: background-color 1.2s ease, box-shadow 1.2s ease !important;
+}
+.main-shuffleButton-button[aria-checked="true"], .main-repeatButton-button[aria-checked="true"],
+.main-shuffleButton-button[aria-checked="true"] svg, .main-repeatButton-button[aria-checked="true"] svg {
+  color: rgb(var(--ambient-color)) !important; fill: rgb(var(--ambient-color)) !important;
+}
+
+/* ---- progress / volume: neon gradient ---- */
+.progress-bar { --fg-color: rgb(var(--neon-pink)) !important; --bg-color: rgba(255,255,255,.10) !important; }
+.x-progressBar-fillColor {
+  background: linear-gradient(90deg, rgb(var(--neon-pink)), rgb(var(--ambient-color))) !important;
+  box-shadow: 0 0 8px rgba(var(--ambient-color), .8);
+}
+.x-progressBar-progressBarBg { border-radius: 999px !important; }
+
+/* ---- inputs ---- */
+input[type="search"], .x-searchInput-searchInputInput {
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(255,255,255,.05) !important;
+}
+input[type="search"]:focus { box-shadow: 0 0 0 1px rgb(var(--neon-cyan)), 0 0 14px rgba(var(--neon-cyan), .4) !important; }
+
+/* ---- scrollbars ---- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--ambient-color), .6); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ===== Edge lights (built by ambient-edge.js) ===== */
+@property --c1 { syntax: "<color>"; inherits: true; initial-value: #00f0ff; }
+@property --c2 { syntax: "<color>"; inherits: true; initial-value: #ff2a6d; }
+@property --c3 { syntax: "<color>"; inherits: true; initial-value: #b04dff; }
+@property --c4 { syntax: "<color>"; inherits: true; initial-value: #f9f002; }
+@property --cp { syntax: "<color>"; inherits: true; initial-value: #00f0ff; }
+
+#ambient-edge {
+  position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;
+  transition: --c1 1.2s ease, --c2 1.2s ease, --c3 1.2s ease, --c4 1.2s ease, --cp .25s ease;
+}
+#ambient-edge .ae-layer { position: absolute; inset: 0; will-change: opacity; }
+#ambient-edge .ae-mask {
+  position: absolute; inset: 0; padding: var(--t); overflow: hidden;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+#ambient-edge .ae-spin {
+  position: absolute; left: 50%; top: 50%;
+  width: 200vmax; height: 200vmax; margin: -100vmax 0 0 -100vmax;
+  will-change: transform;
+}
+/* 1. hairline neon line, colours circling */
+#ambient-edge .ae-core .ae-mask { --t: 1.5px; }
+#ambient-edge .ae-core .ae-spin { background: conic-gradient(var(--c1), var(--c2), var(--c3), var(--c4), var(--c1)); }
+/* 2. short travelling light streaks with a soft bloom */
+#ambient-edge .ae-comet { filter: blur(4px) saturate(160%); }
+#ambient-edge .ae-comet .ae-mask { --t: 6px; }
+#ambient-edge .ae-comet .ae-spin {
+  background: conic-gradient(
+    transparent 0deg, var(--c1) 22deg, transparent 40deg,
+    transparent 90deg, var(--c2) 112deg, transparent 130deg,
+    transparent 180deg, var(--c3) 202deg, transparent 220deg,
+    transparent 270deg, var(--c4) 292deg, transparent 310deg, transparent 360deg);
+}
+/* 3. whole-edge flash on every beat */
+#ambient-edge .ae-pulse {
+  box-shadow: inset 0 0 0 1.5px var(--cp), inset 0 0 14px 0 var(--cp);
+  opacity: 0;
+}
+/* 4. EQ bars along the bottom edge */
+#ambient-edge canvas.ae-bars {
+  position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 14px;
+  filter: drop-shadow(0 0 2px var(--c1));
+  opacity: .85;
+}
+
+/* main play/pause button: neon */
+[data-testid="control-button-playpause"] {
+  background-color: rgb(var(--ambient-color)) !important;
+  color: #07060d !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.25), 0 0 18px rgba(var(--ambient-color), .75);
+  transition: background-color 1.2s ease, box-shadow 1.2s ease !important;
+}
+[data-testid="control-button-playpause"] svg { fill: #07060d !important; }
+[data-testid="control-button-playpause"] > span,
+[class*="button-primary__inner"] {
+  background-color: rgb(var(--ambient-color)) !important;
+  transition: background-color 1.2s ease !important;
+}
+
+/* cover glow canvas (drawn by ambient-edge.js), sits under scanlines + edge lights */
+#ae-cover-glow {
+  position: fixed; inset: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 2147483645;
+  mix-blend-mode: screen;
+}
