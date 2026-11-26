@@ -13,7 +13,10 @@ final class Music {
     var paletteVersion = 0
     var beats: [Double] = [], bars: [Double] = [], segT: [Double] = [], segL: [Double] = []
     var pos = 0.0, posAt = CACurrentMediaTime(), playing = false
+    var lastMessage = 0.0                       // when the extension last sent anything
     var currentPos: Double { playing ? pos + (CACurrentMediaTime() - posAt) : pos }
+    // if Spotify stops reporting (quit, crashed, theme removed) don't keep "playing" a stale song
+    var isPlaying: Bool { playing && CACurrentMediaTime() - lastMessage < 3 }
 }
 let music = Music()
 let lock = NSLock()
@@ -38,17 +41,21 @@ final class Server {
     func handle(_ c: NWConnection) {
         c.start(queue: .global())
         var buf = Data()
+        let maxRequest = 4 << 20                // 4 MB is far more than a track's analysis needs
         func read() {
             c.receive(minimumIncompleteLength: 1, maximumLength: 1 << 20) { data, _, done, err in
                 if let d = data { buf.append(d) }
+                if buf.count > maxRequest { c.cancel(); return }
                 if let r = buf.range(of: Data("\r\n\r\n".utf8)) {
                     let head = String(decoding: buf[..<r.lowerBound], as: UTF8.self)
-                    let len = head.split(separator: "\r\n").first { $0.lowercased().hasPrefix("content-length:") }
-                        .flatMap { Int($0.split(separator: ":")[1].trimmingCharacters(in: .whitespaces)) } ?? 0
+                    let lines = head.split(separator: "\r\n")
+                    let len = lines.first { $0.lowercased().hasPrefix("content-length:") }
+                        .flatMap { Int($0.dropFirst("content-length:".count).trimmingCharacters(in: .whitespaces)) } ?? 0
+                    guard len >= 0, len <= maxRequest else { c.cancel(); return }
                     let body = buf[r.upperBound...]
                     if body.count >= len {
-                        let line = head.split(separator: "\r\n").first ?? ""
-                        if line.hasPrefix("POST") { self.route(String(line.split(separator: " ")[1]), Data(body.prefix(len))) }
+                        let parts = (lines.first ?? "").split(separator: " ")
+                        if parts.count >= 2, parts[0] == "POST" { self.route(String(parts[1]), Data(body.prefix(len))) }
                         let resp = "HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: POST, OPTIONS\r\nAccess-Control-Allow-Headers: *\r\nAccess-Control-Allow-Private-Network: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
                         c.send(content: Data(resp.utf8), completion: .contentProcessed { _ in c.cancel() })
                         return
@@ -63,8 +70,9 @@ final class Server {
     func route(_ path: String, _ body: Data) {
         guard let j = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else { return }
         lock.lock(); defer { lock.unlock() }
+        music.lastMessage = CACurrentMediaTime()
         if path == "/track" {
-            if let p = j["palette"] as? [[Double]], p.count >= 4 {
+            if let p = j["palette"] as? [[Double]], p.count >= 4, p.prefix(4).allSatisfy({ $0.count >= 3 }) {
                 music.palette = p.prefix(4).map { CGColor(red: $0[0] / 255, green: $0[1] / 255, blue: $0[2] / 255, alpha: 1) }
                 music.paletteVersion += 1
             }
@@ -110,7 +118,8 @@ final class GlowView: NSView {
         CATransaction.commit()
     }
 
-    // soft blurred rounded-rect = the glow's shape (inside is hidden behind Spotify anyway)
+    // the glow's shape: a soft blurred rounded rect with a hole exactly where Spotify sits,
+    // so the glow can only ever appear outside the window, even if the stacking order goes wrong
     func rebuildMask(_ size: CGSize) {
         maskSize = size
         let s: CGFloat = 0.5                                  // render at half res; it's blurred anyway
@@ -146,7 +155,7 @@ final class App: NSObject, NSApplicationDelegate {
     var win: NSWindow!, view: GlowView!, server: Server?
     var angle = 0.0, level = 0.3, last = CACurrentMediaTime(), tickN = 0, seenPalette = -1, beatCount = -1, pulseColor = 0
     var lastFrame = CGRect.zero
-    var aboveStrikes = 0
+    var aboveStrikes = 0, lastStrike = 0.0
 
     func applicationDidFinishLaunching(_ n: Notification) {
         server = try? Server()
@@ -197,8 +206,11 @@ final class App: NSObject, NSApplicationDelegate {
                 }
             }
             // safety: if macOS stacked us above Spotify, hide rather than cover it
-            if found != nil && win.isVisible && myIdx >= 0 && spotifyIdx >= 0 && myIdx < spotifyIdx { win.orderOut(nil); found = nil; lastFrame = .zero; aboveStrikes += 1 }
-            if aboveStrikes > 20 { found = nil }       // keeps landing on top (e.g. odd window setup) → give up until relaunch
+            if found != nil && win.isVisible && myIdx >= 0 && spotifyIdx >= 0 && myIdx < spotifyIdx {
+                win.orderOut(nil); found = nil; lastFrame = .zero; aboveStrikes += 1; lastStrike = now
+            }
+            if now - lastStrike > 30 { aboveStrikes = 0 }   // forgive occasional glitches
+            if aboveStrikes > 20 { found = nil }            // keeps landing on top right now → stay hidden for a while
             if let (cg, num) = found {
                 let primaryH = NSScreen.screens.first?.frame.height ?? 0
                 let f = CGRect(x: cg.minX - MARGIN, y: primaryH - cg.maxY - MARGIN, width: cg.width + 2 * MARGIN, height: cg.height + 2 * MARGIN)
@@ -211,8 +223,10 @@ final class App: NSObject, NSApplicationDelegate {
             } else if win.isVisible { win.orderOut(nil) }
         }
 
+        guard win.isVisible else { return }      // nothing to draw: skip the animation work
+
         lock.lock()
-        let playing = music.playing, pos = music.currentPos
+        let playing = music.isPlaying, pos = music.currentPos
         let beats = music.beats, bars = music.bars, segT = music.segT, segL = music.segL
         let pv = music.paletteVersion, pal = music.palette
         lock.unlock()

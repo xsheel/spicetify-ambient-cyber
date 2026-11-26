@@ -6,7 +6,16 @@ A [Spicetify](https://spicetify.app) theme and extension that turns the Spotify 
 
 ![Ambient Cyber theme on an album page: neon accents taken from the album art, glowing covers and a lit window edge](docs/screenshots/main.png)
 
-*The edge lights, bars and glows animate with the music. This still was taken with playback paused, so they're at their calmest.*
+*Top: the theme running as a window, with the glow spilling onto the desktop. Bottom: an album page, with accents taken from the cover art.*
+
+## Highlights
+
+- **Beat-synced lighting** without access to the audio stream: the lights follow Spotify's own beat, bar and loudness timeline, lined up with the playback position on every animation frame
+- **Colours from the album art:** each track's cover is sampled, grouped by hue and boosted into a neon palette that the whole UI uses
+- **Light that leaves the window:** a native macOS companion app (Swift, Core Animation) paints a click-through glow on the desktop behind Spotify, in sync with the in-app lights
+- **Safe by design:** the desktop glow can only draw outside the Spotify window, hides when there's no room for it, and only listens on localhost
+
+**Built with:** JavaScript (Spicetify extension, Canvas 2D), CSS (Spicetify theme), Swift (AppKit, Core Animation, Network framework), shell and Python tooling.
 
 ## Features
 
@@ -52,6 +61,15 @@ cd spicetify-ambient-cyber
 
 On macOS, Spicetify needs permission to modify the Spotify app: **System Settings → Privacy & Security → App Management** → enable your terminal app.
 
+**Windows / manual install:** run `python3 scripts/build-theme.py`, copy `theme/Ambient/` into Spicetify's `Themes` folder and `extension/ambient-edge.js` into its `Extensions` folder (`spicetify config-dir` opens it), then:
+
+```bash
+spicetify config current_theme Ambient color_scheme Base inject_css 1 replace_colors 1 extensions ambient-edge.js
+spicetify apply
+```
+
+The theme and in-app lights work on every platform Spicetify supports. The desktop glow app is macOS-only.
+
 After a Spotify update removes the theme, run `spicetify backup apply`.
 
 ## Uninstall
@@ -80,6 +98,22 @@ extension/          ambient-edge.js: edge lights, EQ bars, cover glow, desktop-g
 glow-app/           Swift source for the macOS desktop glow app
 scripts/            build, install and uninstall scripts
 ```
+
+## Troubleshooting
+
+| Problem | Fix |
+| --- | --- |
+| Theme disappeared after a Spotify update | `spicetify backup apply` (if it complains about the backup: `spicetify restore backup apply`) |
+| "Cannot write to Spotify's application files" (macOS) | Allow your terminal under **System Settings → Privacy & Security → App Management** |
+| Flashes feel slightly early or late | Change `LATENCY` at the top of `extension/ambient-edge.js` (e.g. `0.08`), then `./scripts/install.sh` |
+| No desktop glow | Spotify must be a normal window with some desktop around it (not full screen). Check the app is running: `launchctl print gui/$(id -u)/local.ambient.glow` |
+| Stop the desktop glow for now | `launchctl bootout gui/$(id -u)/local.ambient.glow` |
+
+## Limitations
+
+- The beat sync relies on Spotify's audio-analysis data, read through Spicetify. Spotify has restricted its public audio-analysis API, so if this data becomes unavailable the lights fall back to a gentle generic pulse (the theme and colours still work).
+- Spotify's internal class names change between releases, so an update can occasionally un-style a part of the UI until the theme is adjusted.
+- Podcasts and local files have no analysis data and use the fallback pulse.
 
 ## Credits and licence
 

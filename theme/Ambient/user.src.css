@@ -1,4 +1,5 @@
-/* ===== Ambient // CYBER — cyberpunk theme for Spotify (Spicetify) ===== */
+/* ===== Ambient Cyber — music-reactive cyberpunk theme for Spotify (Spicetify) =====
+   Edit this file, then run scripts/build-theme.py to produce user.css (fonts get embedded). */
 @font-face { font-family: "Orbitron"; font-weight: 700; font-display: swap; src: url(data:font/woff2;base64,{{orbitron-700}}) format("woff2"); }
 @font-face { font-family: "Rajdhani"; font-weight: 500; font-display: swap; src: url(data:font/woff2;base64,{{rajdhani-500}}) format("woff2"); }
 @font-face { font-family: "Rajdhani"; font-weight: 600; font-display: swap; src: url(data:font/woff2;base64,{{rajdhani-600}}) format("woff2"); }
@@ -9,7 +10,6 @@
   --neon-cyan: 0, 240, 255;
   --neon-pink: 255, 42, 109;
   --neon-yellow: 249, 240, 2;
-  --cut: 12px;
   --gap: 6px;
   --font-ui: "Rajdhani", "SF Pro Display", system-ui, sans-serif;
   --font-display: "Orbitron", "Rajdhani", system-ui, sans-serif;
@@ -183,7 +183,7 @@ input[type="search"]:focus { box-shadow: 0 0 0 1px rgb(var(--neon-cyan)), 0 0 14
   transition: background-color 1.2s ease !important;
 }
 
-/* cover glow canvas (drawn by ambient-edge.js), sits under scanlines + edge lights */
+/* cover glow canvas (drawn by ambient-edge.js), sits just under the edge lights */
 #ae-cover-glow {
   position: fixed; inset: 0; width: 100vw; height: 100vh;
   pointer-events: none; z-index: 2147483645;

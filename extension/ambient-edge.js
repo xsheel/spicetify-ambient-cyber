@@ -3,6 +3,8 @@
 //   • travelling light streaks that speed up with loudness and kick on beats
 //   • whole-edge flash on every beat (bigger on each bar's downbeat)
 //   • EQ bars along the bottom edge driven by Spotify's pitch + loudness analysis
+//   • album covers glow in their own colours and pulse on the beat
+//   • sends colours + beat timeline to the optional macOS desktop glow app (glow-app/)
 (function ambientEdge() {
   const S = window.Spicetify;
   if (!S || !S.Player || !S.Player.addEventListener || !S.getAudioData || !document.body) {
@@ -95,11 +97,58 @@
   }
   setPalette(pal);
 
-  // ---------- desktop glow app (Ambient Glow.app) bridge ----------
+  // ---------- per-track data: palette + Spotify's audio analysis ----------
+  let A = null, currentUri = null, analysisTries = 0, nextAnalysisTry = 0;
+
+  async function loadAnalysis(uri) {
+    analysisTries++;
+    nextAnalysisTry = Date.now() + 4000 * analysisTries;           // back off: 4s, 8s, 12s
+    try {
+      const a = await S.getAudioData(uri);
+      if (currentUri !== uri || !a || !a.segments || !a.segments.length) return;
+      A = {
+        segs: a.segments.map((s) => ({ t: s.start, d: s.duration, l0: s.loudness_start, lm: s.loudness_max, tm: s.loudness_max_time, p: s.pitches, tb: s.timbre })),
+        beats: (a.beats || []).map((b) => b.start),
+        bars: (a.bars || []).map((b) => b.start),
+      };
+      sendTrack();
+    } catch (e) { /* no analysis yet: the lights use a gentle synthetic pulse */ }
+  }
+
+  async function onTrackInner() {
+    const item = S.Player.data && (S.Player.data.item || S.Player.data.track);
+    if (!item || !item.uri) return;
+    if (item.uri === currentUri) {
+      // same song: retry the analysis a few times if it failed
+      if (!A && analysisTries < 3 && Date.now() >= nextAnalysisTry) await loadAnalysis(currentUri);
+      return;
+    }
+    const uri = (currentUri = item.uri);
+    A = null; analysisTries = 0; nextAnalysisTry = 0;
+    const img = item.metadata && (item.metadata.image_large_url || item.metadata.image_url);
+    if (img) {
+      try {
+        const p = await paletteFrom(img.replace("spotify:image:", "https://i.scdn.co/image/"));
+        if (p && currentUri === uri) setPalette(p);
+      } catch (e) { /* cover couldn't be read: keep the previous palette */ }
+    }
+    if (currentUri === uri) { sendTrack(); await loadAnalysis(uri); }
+  }
+  const onTrack = () => onTrackInner().catch(() => {});
+
+  // ---------- bridge to the optional macOS desktop glow app (Ambient Glow.app) ----------
+  // If the app isn't running, requests fail quietly and we only retry every 15 s (no console spam).
   const GLOW_URL = "http://127.0.0.1:47823";
-  const sendGlow = (path, obj) => { try { fetch(GLOW_URL + path, { method: "POST", mode: "no-cors", body: JSON.stringify(obj) }).catch(() => {}); } catch (e) {} };
+  let glowUp = true, glowRetryAt = 0;
+  function sendGlow(path, obj) {
+    if (!glowUp && Date.now() < glowRetryAt) return;
+    try {
+      fetch(GLOW_URL + path, { method: "POST", mode: "no-cors", body: JSON.stringify(obj) })
+        .then(() => { if (!glowUp) { glowUp = true; sendTrack(); } })
+        .catch(() => { glowUp = false; glowRetryAt = Date.now() + 15000; });
+    } catch (e) { glowUp = false; glowRetryAt = Date.now() + 15000; }
+  }
   const playState = () => ({ pos: safe(() => S.Player.getProgress(), 0) / 1000, playing: safe(() => S.Player.isPlaying(), false) });
-  let glowTrack = null;
   function sendTrack() {
     sendGlow("/track", Object.assign({
       palette: pal,
@@ -109,33 +158,12 @@
   }
   setInterval(() => sendGlow("/state", playState()), 500);
   S.Player.addEventListener("onplaypause", () => setTimeout(() => sendGlow("/state", playState()), 50));
-  S.Player.addEventListener("onprogress", (() => { let lastP = 0; return () => { const p = playState().pos; if (Math.abs(p - lastP) > 2) sendGlow("/state", playState()); lastP = p; }; })());
-  setInterval(sendTrack, 5000);   // re-sync if the glow app was started after Spotify
+  S.Player.addEventListener("onprogress", (() => {
+    let lastP = 0;
+    return () => { const p = playState().pos; if (Math.abs(p - lastP) > 2) sendGlow("/state", playState()); lastP = p; };   // seeks
+  })());
+  setInterval(() => { if (glowUp) sendTrack(); }, 5000);   // re-sync if the glow app was (re)started after Spotify
 
-  // ---------- analysis ----------
-  let A = null, currentUri = null;
-  async function onTrackInner() {
-    const item = S.Player.data && (S.Player.data.item || S.Player.data.track);
-    if (!item || !item.uri || item.uri === currentUri) return;
-    const uri = (currentUri = item.uri);
-    A = null;
-    const img = item.metadata && (item.metadata.image_large_url || item.metadata.image_url);
-    if (img) {
-      const p = await paletteFrom(img.replace("spotify:image:", "https://i.scdn.co/image/"));
-      if (p && currentUri === uri) setPalette(p);
-    }
-    try {
-      const a = await S.getAudioData(uri);
-      if (currentUri !== uri || !a || !a.segments || !a.segments.length) return;
-      A = {
-        segs: a.segments.map((s) => ({ t: s.start, d: s.duration, l0: s.loudness_start, lm: s.loudness_max, tm: s.loudness_max_time, p: s.pitches, tb: s.timbre })),
-        beats: (a.beats || []).map((b) => b.start),
-        bars: (a.bars || []).map((b) => b.start),
-      };
-    } catch (e) { /* no analysis: synthetic pulse */ }
-    if (currentUri === uri) sendTrack();
-  }
-  const onTrack = () => onTrackInner().catch(() => {});
   S.Player.addEventListener("songchange", onTrack);
   setInterval(onTrack, 1000);
   onTrack();
@@ -188,6 +216,7 @@
     const card = e.target.closest && e.target.closest(".main-card-card, [data-testid='tracklist-row']");
     hovered = card ? card.querySelector("img") : null;
   }, true);
+  document.addEventListener("mouseleave", () => { hovered = null; });
   const square = (r) => r.width > 0 && r.height / r.width > 0.8 && r.height / r.width < 1.25;
   const visible = (img) => {
     const r = img.getBoundingClientRect();
